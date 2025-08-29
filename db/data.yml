@@ -1,0 +1,26 @@
+
+---
+ar_internal_metadata:
+  columns:
+  - key
+  - value
+  - created_at
+  - updated_at
+  records: 
+  - - environment
+    - development
+    - 2025-08-29 16:12:06.184427000 Z
+    - 2025-08-29 16:12:06.184427000 Z
+
+---
+books:
+  columns:
+  - id
+  - title
+  - created_at
+  - updated_at
+  records: 
+  - - 1
+    - bingle book
+    - 2025-08-29 16:14:48.837500000 Z
+    - 2025-08-29 16:14:48.837500000 Z
