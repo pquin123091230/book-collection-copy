@@ -1,18 +1,64 @@
-name: GitHub Actions Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
-on: [push]
+env:
+  RUBY_VERSION: 3.1.2
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: password
+  DATABASE_USER: postgres
+  DATABASE_PASSWORD: password
+
+name: Rails tests
+on: [push, pull_request]
 jobs:
-  Explore-GitHub-Actions:
+  rspec-test:
+    name: RSpec
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:12
+        ports:
+        - 5432:5432
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repository code
-        uses: actions/checkout@v5
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+      - name: Install postgres client
+        run: sudo apt-get install libpq-dev
+      - name: Install dependencies
         run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+          gem install bundler
+          bundler install
+      - name: Create database
+        run: |
+          bundler exec rails db:create RAILS_ENV=test
+          bundler exec rails db:migrate RAILS_ENV=test
+      - uses: borales/actions-yarn@v3.0.0
+        with:
+          cmd: install
+      - name: Run tests
+        run: bundler exec rspec .
+      - name: Run brakeman
+        run: brakeman -o brakeman.txt
+      - name: Run rubocop
+        run: bundler exec rubocop --force-exclusion vendor/*/** --out rubocop.txt
+      - name: Upload coverage results
+        uses: actions/upload-artifact@master
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage
+      - name: Upload rubocop report
+        uses: actions/upload-artifact@master
+        if: always()
+        with:
+          name: rubocop-report.txt
+          path: rubocop.txt
+      - name: Upload brakeman report
+        uses: actions/upload-artifact@master
+        if: always()
+        with:
+          name: brakeman-report.txt
+          path: brakeman.txt
+
